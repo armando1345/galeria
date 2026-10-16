@@ -1,3 +1,4 @@
+import {authorizedFetch as fetch} from './access.mjs';
 import assert from 'node:assert/strict';
 import {decode,encode} from '@msgpack/msgpack';
 import {writeFile} from 'node:fs/promises';

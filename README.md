@@ -16,7 +16,7 @@ El acceso del organizador está en un archivo privado de este equipo:
 - `private/organizador.txt`: código del organizador.
 - `private/accesos-estudiantes.csv`: accesos anteriores, conservados por compatibilidad; no se piden en el flujo actual.
 
-El estudiante abre «Crea tu obra», selecciona imagen y video y pulsa «Publicar», sin códigos ni registro. La referencia se prepara automáticamente; el mensaje de éxito aparece cuando la pieza ya forma parte de la galería pública. El sitio nunca sirve los archivos privados de accesos. No están incluidos en Git ni en `dist/`.
+El estudiante abre «Crea tu obra», selecciona imagen y video y pulsa «Publicar», con el PIN compartido y sin registro. La referencia se prepara automáticamente; el mensaje de éxito aparece cuando la pieza ya forma parte de la galería pública. El sitio nunca sirve los archivos privados de accesos. No están incluidos en Git ni en `dist/`.
 
 Los espacios **1–3** contienen demostraciones aprobadas y publicadas. Los espacios restantes están disponibles. Los datos locales persisten en `.wrangler/state/`. No elimines esa carpeta si quieres conservar entregas y publicaciones. Los videos originales de demo están en `demo/videos/` y las imágenes en `public/demo/`. También puedes abrir `public/demo/imprimir.html` directamente para imprimir.
 
@@ -47,7 +47,7 @@ Para editar con recarga automática: deja `pnpm start` en una terminal y ejecuta
 
 ## Cómo entregar y revisar
 
-1. Cada estudiante abre **Crea tu obra**, selecciona la imagen inicial y el MP4 y pulsa **Publicar**. Solo hay dos campos de archivos; no se pide código, nombre ni título. Un check confirma la selección de cada archivo, sin mostrar el estado nativo ni el nombre.
+1. Cada estudiante abre **Crea tu obra**, selecciona la imagen inicial y el MP4 y pulsa **Publicar**. Solo hay dos campos de archivos; no se pide nombre ni título. Un check confirma la selección de cada archivo, sin mostrar el estado nativo ni el nombre.
 2. El navegador prepara una referencia MindAR de la imagen, reducida a un máximo de 1024 px por lado. Si hay muy pocos detalles reconocibles, muestra un error. Después envía imagen, video y referencia en solicitudes separadas. El video se transmite directamente a R2; el servidor solo lee sus cabeceras y metadatos para validarlo.
 3. El servidor genera una sesión privada mediante una cookie HttpOnly de 90 días. Al publicar la primera entrega, asigna atómicamente un espacio libre; si se ocupan los existentes, crea uno nuevo. Abrir el formulario no reserva espacios. El título y participante se asignan automáticamente y el organizador puede editarlos.
 4. La pieza se aprueba y publica automáticamente, conservando las demás obras públicas. Se muestra **Pieza publicada con éxito. Escanéala para ver el resultado.**, con un botón que abre el escáner de toda la galería. La preparación y la subida pueden tardar; no se anuncia éxito antes de terminar.
@@ -99,9 +99,9 @@ Al entrar aparece una sola indicación: «Apunta la cámara hacia la pieza», co
 
 El adaptador de cámara de MindAR 1.2.5 se sustituye de forma acotada para conservar errores nativos de permisos y detener un stream que se conceda después del cierre. La biblioteca y ese comportamiento están fijados y cubiertos por las pruebas del proyecto.
 
-## Cloudflare y GitHub: configuración pendiente
+## Cloudflare y GitHub: referencia para una instalación nueva
 
-**No se creó infraestructura remota, no se contrató ningún servicio y no se activó un plan de pago.** No hay todavía una URL pública ni un repositorio remoto. La base y R2 usados en la demostración son simulaciones locales reales de Wrangler.
+La instalación actual ya está publicada en Cloudflare Pages y conectada a GitHub. Los siguientes comandos son una referencia para una instalación independiente; no los repitas sobre el proyecto existente.
 
 Para desplegar hacen falta tu acceso a Cloudflare, un proyecto Pages, una base D1, un bucket R2 privado y el secreto del organizador. Si la cuenta solicita habilitar facturación para R2, detente y revisa las condiciones antes de continuar. No es necesario activar Workers Paid para ejecutar los comandos de desarrollo.
 
@@ -122,7 +122,7 @@ pnpm exec wrangler d1 execute galeria --remote --file private/seed.sql
 pnpm build
 ```
 
-En Pages → proyecto → Settings → Variables and Secrets añade **ADMIN_CODE_SHA256** como secreto de producción. Su valor es el hash hexadecimal de `.dev.vars`, sin comillas, no el código legible de `private/organizador.txt`. Para otro código de administrador, genera primero un nuevo código aleatorio y su SHA-256 fuera del código fuente. No publiques `.dev.vars`.
+En Pages → proyecto → Settings → Variables and Secrets añade **ADMIN_CODE_SHA256** y **ACCESS_PIN_SHA256** como secretos de producción. El valor de cada uno es su hash hexadecimal de `.dev.vars`, sin comillas, no el código legible de `private/organizador.txt`. Para otro código de administrador, genera primero un nuevo código aleatorio y su SHA-256 fuera del código fuente. No publiques `.dev.vars`.
 
 Verifica los bindings **DB → galeria** y **MEDIA → umbral-galeria-media**, `nodejs_compat` y la fecha de compatibilidad de `wrangler.toml`. Mantén R2 privado, sin dominio público: la API controla el acceso a cada objeto. Los bindings también están declarados en el archivo Wrangler, que debe acompañar al proyecto.
 
@@ -163,9 +163,15 @@ Fuentes oficiales consultadas el 15 de octubre de 2026:
 - [Bindings Pages/D1/R2](https://developers.cloudflare.com/pages/functions/bindings/) y [configuración Wrangler de Pages](https://developers.cloudflare.com/pages/functions/wrangler-configuration/).
 - [Límites Workers](https://developers.cloudflare.com/workers/platform/limits/), [cuotas/precios R2](https://developers.cloudflare.com/r2/pricing/) y [Pages Functions](https://developers.cloudflare.com/pages/functions/pricing/).
 
-## Acceso de creación por enlace
+## PIN compartido de acceso
 
-La creación y publicación están disponibles para quien tenga la URL mientras las entregas estén abiertas. La sesión separa archivos de cada navegador, pero no identifica a una persona ni comprueba pertenencia al grupo. Comparte la dirección con los participantes; el organizador conserva el control de cierre y revisión. No hay verificación de correo ni cuenta. Si se borran las cookies o se cambia de navegador, la sesión anterior no se recupera automáticamente; el organizador puede gestionar la entrega desde su panel. La sesión del organizador es independiente de la sesión de creación.
+«Ver colección» y «Crea tu obra» muestran un formulario de un solo campo: **Ingresa el PIN de acceso**. Una vez aceptado, se recuerda durante ocho horas en ese navegador mediante una cookie HttpOnly y Secure en HTTPS. La API también exige esta sesión para consultar la colección, cargar sus imágenes, publicar o borrar parejas; una sesión anterior de creador no permite omitir el PIN. Diez intentos fallidos por dirección IP bloquean nuevos intentos durante quince minutos.
+
+La cámara continúa disponible sin PIN. Su API entrega únicamente las referencias, dimensiones y videos necesarios para el reconocimiento, sin imágenes de la colección ni títulos. El PIN compartido no crea cuentas personales. Cualquier persona que lo conozca puede ver, publicar y borrar parejas después de confirmar el borrado.
+
+El PIN local se guarda en `private/pin-acceso.txt`, fuera de Git y del sitio compilado. El servidor compara su SHA-256 con **ACCESS_PIN_SHA256**, configurado en `.dev.vars` localmente y como secreto de producción en Cloudflare Pages. No incluyas el PIN ni su hash en el código fuente. Una instalación nueva genera su propio PIN con `node scripts/setup.mjs`; una copia existente conserva sus accesos.
+
+El proyecto público es **galeria-entre-fases**, conectado al repositorio **armando1345/galeria**, con URL https://galeria-entre-fases.pages.dev. Usa los bindings DB y MEDIA de `wrangler.toml`. Los cambios en main activan la compilación y publicación. No vuelvas a crear la infraestructura descrita en las instrucciones iniciales de este documento para la instalación ya existente.
 
 ## Branding
 
@@ -179,6 +185,7 @@ pnpm build                   # TypeScript del cliente y servidor + Vite
 node scripts/test-flow.mjs    # requiere servidor local; usa espacios 21 y 22
 node scripts/test-ui.mjs      # selección con checks, cámara mínima y cambio frontal/trasera; no publica
 node scripts/test-creator.mjs # privacidad y asignación concurrente sin códigos; solo local
+pnpm test:access              # PIN, bloqueo API y cámara pública; base aislada 8790
 pnpm test:errors              # recuperación: red, imagen inválida, cámara denegada y galería vacía
 pnpm test:publish             # publicación real de imagen 12 MiB y video 100 MB y 30 s + reconocimiento sintético
 pnpm test:publish-api         # después del anterior: límites, privacidad, concurrencia e idempotencia
@@ -218,6 +225,6 @@ La cámara también funciona con la colección vacía: abre el video del disposi
 
 ## Colección compartida y parejas
 
-Ver colección utiliza el amarillo de la marca y una animación circular al pasar el cursor o enfocar con teclado. Cada tarjeta reúne la imagen y su video. La colección vacía muestra «Aún no hay contenido publicado». Cualquier visitante puede borrar una pareja publicada después de confirmar «Borrar imagen y video», sin registro ni código. Se eliminan ambos archivos y las referencias que ya no se usan; se conserva una referencia compartida si otra pareja aún depende de ella. Subir otra pareja crea una publicación independiente, sin reemplazar las demás.
+Ver colección utiliza el amarillo de la marca y una animación circular al pasar el cursor o enfocar con teclado. Cada tarjeta reúne la imagen y su video. La colección vacía muestra «Aún no hay contenido publicado». Cualquier visitante con el PIN puede borrar una pareja publicada después de confirmar «Borrar imagen y video», sin registro, después de introducir el PIN. Se eliminan ambos archivos y las referencias que ya no se usan; se conserva una referencia compartida si otra pareja aún depende de ella. Subir otra pareja crea una publicación independiente, sin reemplazar las demás.
 
 La migración `migrations/0004_deleted_works.sql` registra borrados para impedir que una publicación simultánea restaure la pareja y permite terminar un borrado si el almacenamiento falla temporalmente. Las instalaciones nuevas lo incluyen con `pnpm db:local`; una instalación remota existente necesita `pnpm exec wrangler d1 execute galeria --remote --file migrations/0004_deleted_works.sql`. La prueba `pnpm test:collection` requiere un servidor aislado en 8790 y las referencias de demostración locales en 8788 (configurables con BASE_URL y REFERENCE_BASE); rechaza usar la misma base o un destino remoto.

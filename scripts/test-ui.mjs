@@ -1,3 +1,4 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import {writeFile,mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -7,7 +8,7 @@ try{
  const context=await browser.newContext({viewport:{width:390,height:844},permissions:['camera']});
  await context.addInitScript(()=>{if(window.parent!==window){const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);navigator.mediaDevices.getUserMedia=constraints=>{parent.__requestedModes=parent.__requestedModes||[];parent.__requestedModes.push(constraints.video.facingMode.ideal);return original(constraints);};}});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await mkdir('output',{recursive:true});
- await page.goto(base);await page.getByRole('link',{name:'Crea tu obra'}).click();await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();
+ await unlockBrowser(page.context(),base);await page.goto(base);await page.getByRole('link',{name:'Crea tu obra'}).click();await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();
  ok(await page.locator('form input[type=file]').count()===2,'Solo imagen y video');
  ok(await page.locator('input[type=password],input[type=text]').count()===0,'Sin códigos, nombre ni título');
  ok(await page.locator('.file-select').count()===2,'Dos botones Seleccionar archivo');

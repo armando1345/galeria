@@ -1,10 +1,11 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import assert from 'node:assert/strict';
 import {writeFile} from 'node:fs/promises';
 const base=process.env.BASE_URL||'http://127.0.0.1:8788',browser=await launch(['--use-fake-device-for-media-stream']);let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;console.log('✓',m)};
 try{
  const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));const videoRequests=[];page.on('request',r=>{if(/\/api\/media\/.+\/video/.test(r.url()))videoRequests.push(r.url())});
- await page.goto(base);await page.getByRole('heading',{name:/Realidad aumentada/}).waitFor();ok(videoRequests.length===0,'La portada no descarga videos');
+ await unlockBrowser(page.context(),base);await page.goto(base);await page.getByRole('heading',{name:/Realidad aumentada/}).waitFor();ok(videoRequests.length===0,'La portada no descarga videos');
  await page.route('**/api/creator/session',r=>r.abort());await page.getByRole('link',{name:'Crea tu obra'}).click();await page.getByRole('button',{name:'Volver a intentar',exact:true}).waitFor();ok(/No pudimos conectar/.test(await page.locator('main').innerText()),'Un fallo de red muestra recuperación en español');
  await page.unroute('**/api/creator/session');await page.getByRole('button',{name:'Volver a intentar',exact:true}).click();await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();checks++;
  await page.getByLabel('Sube tu imagen inicial',{exact:true}).setInputFiles({name:'falsa.png',mimeType:'image/png',buffer:Buffer.from('imagen falsa')});await page.getByLabel('Sube tu video',{exact:true}).setInputFiles('tests/fixtures/publication.mp4');await page.getByRole('button',{name:'Publicar',exact:true}).click();await page.getByText(/No pudimos preparar la imagen/).waitFor();ok(await page.getByRole('button',{name:'Publicar',exact:true}).isEnabled(),'Una imagen inválida permite corregir y reintentar');ok(await page.locator('iframe[title="Preparando referencia de la pieza"]').count()===0,'El compilador se libera después de un error');

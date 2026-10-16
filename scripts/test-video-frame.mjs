@@ -1,3 +1,4 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import ffmpeg from 'ffmpeg-static';
 import {execFileSync} from 'node:child_process';
@@ -13,7 +14,7 @@ const browser=await launch(['--use-fake-ui-for-media-stream','--use-fake-device-
 try{
   const context=await browser.newContext({viewport:{width:390,height:844},permissions:['camera']});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(base+'/#/estudiante');await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();
+  await unlockBrowser(page.context(),base);await page.goto(base+'/#/estudiante');await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();
   await page.getByLabel('Sube tu video',{exact:true}).setInputFiles('output/video-frame/different.mp4');
   await page.getByLabel('Sube tu imagen inicial',{exact:true}).setInputFiles('tests/fixtures/publication.png');
   await page.waitForFunction(()=>{const i=document.querySelector('#image-preview'),v=document.querySelector('#video-preview');return i.complete&&v.videoWidth&&v.style.aspectRatio;});

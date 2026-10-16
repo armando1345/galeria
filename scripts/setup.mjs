@@ -1,11 +1,12 @@
 import {mkdir,writeFile,readFile,copyFile,access} from 'node:fs/promises';
-import {randomBytes,createHash} from 'node:crypto';
+import {randomBytes,createHash,randomInt} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 const sha=s=>createHash('sha256').update(s).digest('hex');
 await mkdir('private',{recursive:true});await mkdir('public/vendor/addons/renderers',{recursive:true});
 if(!process.argv.includes('--assets-only'))try{await access('.dev.vars');console.log('Los accesos ya existen. No se reemplazaron.');}catch{
-const admin=randomBytes(24).toString('base64url');const slots=Array.from({length:40},(_,i)=>({id:i+1,code:randomBytes(24).toString('base64url')}));
-await writeFile('.dev.vars',`ADMIN_CODE_SHA256="${sha(admin)}"\n`);
+const pin=randomInt(10000).toString().padStart(4,'0'),admin=randomBytes(24).toString('base64url');const slots=Array.from({length:40},(_,i)=>({id:i+1,code:randomBytes(24).toString('base64url')}));
+await writeFile('.dev.vars',`ADMIN_CODE_SHA256="${sha(admin)}"\nACCESS_PIN_SHA256="${sha(pin)}"\n`);
+await writeFile('private/pin-acceso.txt',pin+'\n');
 await writeFile('private/organizador.txt',`Código privado de organizador (solo local; cambia el secreto para producción):\n${admin}\n`);
 await writeFile('private/accesos-estudiantes.csv','espacio,codigo\n'+slots.map(s=>`${s.id},${s.code}`).join('\n')+'\n');
 await writeFile('private/seed.sql',slots.map(s=>`INSERT INTO slots(id,token_hash) VALUES (${s.id},'${sha(s.code)}') ON CONFLICT(id) DO UPDATE SET token_hash=excluded.token_hash WHERE slots.token_hash LIKE 'auto:%';`).join('\n'));

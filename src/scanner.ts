@@ -1,7 +1,7 @@
 import {videoFrame} from './video-frame';
 import {decode,encode} from '@msgpack/msgpack';
 import './scanner.css';
-import type {Gallery,Work} from './types';
+import type {ScanGallery,ScanWork} from './types';
 import {brand} from './config';
 document.title=brand.name+' · Escáner';
 document.querySelector<HTMLImageElement>('.scan-brand img')!.alt=brand.name;
@@ -31,8 +31,8 @@ async function start(){try{
  let cameraTimeout:ReturnType<typeof setTimeout>|undefined;let cameraVideo:HTMLVideoElement;
  try{cameraVideo=await Promise.race([openCamera(),new Promise<never>((_,reject)=>{cameraTimeout=setTimeout(()=>reject(Error('La cámara tardó demasiado. Comprueba los permisos y la conexión.')),45000);})]);}finally{clearTimeout(cameraTimeout);}
  if(!alive)return;
- const response=await fetch('/api/gallery');if(!response.ok)throw Error('No se pudo cargar la colección.');
- const gallery:Gallery=await response.json(),selection=params.get('group')||'all';
+ const response=await fetch('/api/scan');if(!response.ok)throw Error('No se pudo cargar la colección.');
+ const gallery:ScanGallery=await response.json(),selection=params.get('group')||'all';
  const groups=selection==='all'?gallery.groups:[gallery.groups[Number(selection)]].filter(Boolean);
  if(!groups.length){idleCamera();return;}
  let imageTargetSrc:string;const targetIds:string[]=[];
@@ -50,7 +50,7 @@ async function start(){try{
  engine=new MindARThree({container:document.querySelector('#scene'),imageTargetSrc,maxTrack:1,uiLoading:'no',uiScanning:'no',uiError:'no',filterMinCF:.001,filterBeta:.01,warmupTolerance:3,missTolerance:7});engine.renderer.setPixelRatio(Math.min(devicePixelRatio,2));
  // Reuse the camera that is already open, including after the empty-gallery preview.
  cameraVideo.classList.remove('camera-preview');engine.video=cameraVideo;engine._startVideo=async()=>{};
- const play=async(w:Work)=>{if(!alive)return;const seq=++epoch;for(const [id,a]of assets){if(id!==w.id){a.video.pause();a.mesh.visible=false;}}active=w.id;document.body.dataset.activeWork=w.id;replay.hidden=true;retry.hidden=true;const a=assets.get(w.id)!;a.mesh.visible=false;if(!a.video.getAttribute('src')){a.video.src=w.video;a.video.load();}try{await a.video.play();if(!alive||seq!==epoch){a.video.pause();return;}a.mesh.visible=true;retry.hidden=true;}catch{if(seq!==epoch||!alive)return;retry.hidden=false;retry.onclick=()=>void play(w);}};
+ const play=async(w:ScanWork)=>{if(!alive)return;const seq=++epoch;for(const [id,a]of assets){if(id!==w.id){a.video.pause();a.mesh.visible=false;}}active=w.id;document.body.dataset.activeWork=w.id;replay.hidden=true;retry.hidden=true;const a=assets.get(w.id)!;a.mesh.visible=false;if(!a.video.getAttribute('src')){a.video.src=w.video;a.video.load();}try{await a.video.play();if(!alive||seq!==epoch){a.video.pause();return;}a.mesh.visible=true;retry.hidden=true;}catch{if(seq!==epoch||!alive)return;retry.hidden=false;retry.onclick=()=>void play(w);}};
  for(let i=0;i<targetIds.length;i++){const w=gallery.works.find(x=>x.id===targetIds[i])!,anchor=engine.addAnchor(i),video=document.createElement('video');video.muted=true;video.defaultMuted=true;video.playsInline=true;video.loop=false;video.preload='none';video.setAttribute('playsinline','');video.setAttribute('muted','');video.style.display='none';document.body.append(video);const texture=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;video.onloadedmetadata=()=>{const frame=videoFrame(w.width,w.height,video.videoWidth,video.videoHeight);texture.repeat.set(frame.x,frame.y);texture.offset.set(frame.offsetX,frame.offsetY);};const geometry=new THREE.PlaneGeometry(1,w.height/w.width),material=new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false}),mesh=new THREE.Mesh(geometry,material);mesh.position.z=.001;anchor.group.add(mesh);assets.set(w.id,{video,texture,geometry,material,mesh});anchor.onTargetFound=()=>void play(w);anchor.onTargetLost=()=>{if(active===w.id){epoch++;video.pause();active=null;delete document.body.dataset.activeWork;replay.hidden=true;retry.hidden=true;}};video.onended=()=>{if(active===w.id)replay.hidden=false;};}
  replay.onclick=()=>{if(!active)return;const a=assets.get(active)!;a.video.currentTime=0;replay.hidden=true;a.video.play().catch(()=>{retry.hidden=false;});};
  let timeout:ReturnType<typeof setTimeout>|undefined;try{await Promise.race([engine.start(),new Promise((_,reject)=>{timeout=setTimeout(()=>reject(Error('La cámara tardó demasiado. Comprueba los permisos y la conexión.')),45000);})]);}finally{clearTimeout(timeout);}if(!alive){stop();return;}engine.renderer.setAnimationLoop(()=>{if(alive)engine.renderer.render(engine.scene,engine.camera);});document.body.dataset.scanner='ready';

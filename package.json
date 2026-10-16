@@ -20,7 +20,8 @@
     "test:errors": "node scripts/test-errors.mjs",
     "test:capacity": "node scripts/test-capacity.mjs",
     "test:empty-camera": "node scripts/test-empty-camera.mjs",
-    "test:collection": "node scripts/test-collection.mjs"
+    "test:collection": "node scripts/test-collection.mjs",
+    "test:access": "node scripts/test-access.mjs"
   },
   "dependencies": {
     "@msgpack/msgpack": "2.8.0",

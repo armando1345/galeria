@@ -1,10 +1,11 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import {resolve} from 'node:path';
 import {writeFile,mkdir} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base=process.env.BASE_URL||'http://127.0.0.1:8788';
 const browser=await launch(['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream',`--use-file-for-fake-video-capture=${resolve('private/camera.y4m')}`]);
-try{const context=await browser.newContext({permissions:['camera'],viewport:{width:390,height:844}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('ERROR',e.message);});page.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text().slice(0,300));});await page.goto(base+'/scanner.html');await page.getByRole('button',{name:'Entendido',exact:true}).click();
+try{const context=await browser.newContext({permissions:['camera'],viewport:{width:390,height:844}});const page=await context.newPage();const errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('ERROR',e.message);});page.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text().slice(0,300));});await unlockBrowser(page.context(),base);await page.goto(base+'/scanner.html');await page.getByRole('button',{name:'Entendido',exact:true}).click();
 const recognized=new Map();const gallery=await(await page.request.get(base+'/api/gallery')).json();const expected=gallery.works.filter(w=>w.demo);const end=Date.now()+105000;await mkdir('output',{recursive:true});
 while(Date.now()<end&&recognized.size<expected.length){await page.waitForTimeout(400);const current=await page.evaluate(()=>{const videos=[...document.querySelectorAll('video')].filter(v=>v.getAttribute('src')?.startsWith('/api/media')&&!v.paused&&v.currentTime>.1);return {id:document.body.dataset.activeWork,playing:videos.map(v=>v.getAttribute('src'))};});assert.ok(current.playing.length<=1,'Nunca se reproducen varios videos a la vez');const w=expected.find(w=>w.id===current.id);if(w&&current.playing[0]===w.video&&!recognized.has(w.id)){recognized.set(w.id,{title:w.title,video:w.video});await page.screenshot({path:`output/ar-${w.slot}.png`});console.log('RECONOCIDA',w.title,'→ video correcto reproduciéndose');}}
 if(recognized.size!==expected.length){await page.screenshot({path:'output/ar-error.png'});console.log('Estado final:',await page.locator('#error-message').textContent());}

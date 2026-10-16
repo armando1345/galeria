@@ -1,3 +1,4 @@
+import {authorizedFetch as fetch,unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import {decode,encode} from '@msgpack/msgpack';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
@@ -24,7 +25,7 @@ const first=await seed(),second=await seed(),browser=await launch();
 const checks=[];function ok(value,message){assert.ok(value,message);checks.push(message);console.log('✓',message);}
 try{
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto(base+'/#/obras');await page.locator('.pair-card').first().waitFor();
+ await unlockBrowser(page.context(),base);await page.goto(base+'/#/obras');await page.locator('.pair-card').first().waitFor();
  ok(await page.locator('.pair-card').count()===2,'Cada pareja se presenta como una tarjeta');
  for(const card of await page.locator('.pair-card').all()){assert.equal(await card.locator('img').count(),1);assert.equal(await card.locator('video').count(),1);}
  ok(true,'Cada tarjeta contiene su imagen y su video');

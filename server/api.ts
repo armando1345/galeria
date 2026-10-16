@@ -1,9 +1,10 @@
+import {hasAccess,unlock,accessStatus} from './access';
 import {deletePair} from './collection';
 import {creatorPublication} from './creator-publication';
 import {reserveSpace} from './spaces';
 import { decode } from '@msgpack/msgpack';
 import {ensure,HttpError,imageInfo,videoInfo} from './media';
-export interface Env {DB:D1Database;MEDIA:R2Bucket;ADMIN_CODE_SHA256:string}
+export interface Env {DB:D1Database;MEDIA:R2Bucket;ADMIN_CODE_SHA256:string;ACCESS_PIN_SHA256:string}
 type Submission={id:string;slot_id:number;name:string;title:string;image_key:string;video_key:string;width:number;height:number;duration:number;status:string;active:number;feedback:string;demo:number;created_at:string};
 type Session={role:string;slot_id:number|null};
 export const hash=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s)))).map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -21,6 +22,11 @@ export async function handle(req:Request,env:Env):Promise<Response>{
  try {
  const url=new URL(req.url),path=url.pathname.replace(/^\/api/,'');
  if(req.method!=='GET'&&req.method!=='HEAD') {ensure(req.headers.get('Origin')===url.origin,'Origen de solicitud no permitido.',403);const bodyLimit=/^\/creator\/uploads\/[a-f0-9-]{36}\/video$/.test(path)?100_000_000:64*1024*1024;ensure(Number(req.headers.get('Content-Length')||0)<=bodyLimit,'La carga supera el tamaño permitido.',413);}
+ if(path==='/access/session'&&req.method==='GET')return await accessStatus(req,env);
+ if(path==='/access'&&req.method==='POST')return await unlock(req,env);
+ if(path==='/scan'&&req.method==='GET'){const gallery=await publicManifest(env);return json({id:gallery.id,groups:gallery.groups,works:gallery.works.map((w:{id:string;width:number;height:number;video:string})=>({id:w.id,width:w.width,height:w.height,video:w.video}))});}
+ const needsAccess=path==='/gallery'||path.startsWith('/creator/')||path.startsWith('/collection/')||path.startsWith('/admin')||path==='/submit'||path==='/student'||/^\/media\/[^/]+\/image$/.test(path);
+ if(needsAccess)ensure(await hasAccess(req,env),'Ingresa el PIN de acceso',401);
  if(path==='/gallery'&&req.method==='GET')return json(await publicManifest(env));
  let who=await session(req,env);
  const creator=path.startsWith('/creator/')||path.startsWith('/media/')||path.startsWith('/collection/')?await session(req,env,'umbral_creator'):null;
@@ -50,8 +56,8 @@ export async function handle(req:Request,env:Env):Promise<Response>{
  }
  if(path==='/logout'&&req.method==='POST') {const t=req.headers.get('Cookie')?.match(/umbral=([a-f0-9]{64})/)?.[1];if(t)await env.DB.prepare('DELETE FROM sessions WHERE hash=?').bind(await hash(t)).run();return json({ok:true},200,{'Set-Cookie':'umbral=; Path=/api; HttpOnly; SameSite=Strict; Max-Age=0'});}
  if(path.startsWith('/media/')&&req.method==='GET'){
-   const [, ,id,kind]=path.split('/');ensure(kind==='image'||kind==='video','Recurso inválido.',404);const s=await env.DB.prepare('SELECT * FROM submissions WHERE id=?').bind(id).first<Submission>();ensure(s,'No encontrado.',404);const manifest=await publicManifest(env);const pub=manifest.works.some((x:{id:string})=>x.id===id);ensure(pub||who?.role==='admin'||who?.slot_id===s.slot_id||creator?.slot_id===s.slot_id,'Acceso privado.',403);
-   const object=await env.MEDIA.get(kind==='image'?s.image_key:s.video_key,{range:req.headers});ensure(object,'Archivo no encontrado.',404);const headers=new Headers();object.writeHttpMetadata(headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Cache-Control',pub?'public, max-age=3600, immutable':'private, no-store');headers.set('Accept-Ranges','bytes');headers.set('ETag',object.httpEtag);if(req.headers.has('Range') && object.range && 'offset' in object.range && object.range.offset!==undefined && object.range.length!==undefined){headers.set('Content-Range',`bytes ${object.range.offset}-${object.range.offset+object.range.length-1}/${object.size}`);headers.set('Content-Length',String(object.range.length));return new Response(object.body,{status:206,headers});}return new Response(object.body,{headers});
+   const [, ,id,kind]=path.split('/');ensure(kind==='image'||kind==='video','Recurso inválido.',404);const s=await env.DB.prepare('SELECT * FROM submissions WHERE id=?').bind(id).first<Submission>();ensure(s,'No encontrado.',404);const manifest=await publicManifest(env);const pub=manifest.works.some((x:{id:string})=>x.id===id);if(!pub)ensure(await hasAccess(req,env),'Ingresa el PIN de acceso',401);ensure(pub||who?.role==='admin'||who?.slot_id===s.slot_id||creator?.slot_id===s.slot_id,'Acceso privado.',403);
+   const object=await env.MEDIA.get(kind==='image'?s.image_key:s.video_key,{range:req.headers});ensure(object,'Archivo no encontrado.',404);const headers=new Headers();object.writeHttpMetadata(headers);headers.set('X-Content-Type-Options','nosniff');headers.set('Cache-Control',pub&&kind==='video'?'public, max-age=3600, immutable':'private, no-store');headers.set('Accept-Ranges','bytes');headers.set('ETag',object.httpEtag);if(req.headers.has('Range') && object.range && 'offset' in object.range && object.range.offset!==undefined && object.range.length!==undefined){headers.set('Content-Range',`bytes ${object.range.offset}-${object.range.offset+object.range.length-1}/${object.size}`);headers.set('Content-Length',String(object.range.length));return new Response(object.body,{status:206,headers});}return new Response(object.body,{headers});
  }
  if(path.startsWith('/targets/')&&req.method==='GET'){const manifest=await publicManifest(env);const group=manifest.groups.find((g:{target:string})=>g.target===url.pathname);ensure(group,'Referencia no publicada.',404);const obj=await env.MEDIA.get(url.pathname.replace('/api/',''));ensure(obj,'Referencia no encontrada.',404);return new Response(obj.body,{headers:{'Content-Type':'application/octet-stream','Cache-Control':'public, max-age=31536000, immutable'}});}
  if(path==='/creator/submit')who=creator;

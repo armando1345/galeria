@@ -1,3 +1,4 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -8,8 +9,8 @@ const checks=[];const ok=(v,m)=>{assert.ok(v,m);checks.push(m);console.log('✓'
 try{
  const context=await browser.newContext({permissions:['camera'],viewport:{width:390,height:844}}),page=await context.newPage(),errors=[],targets=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/\.mind|vendor\/mindar/.test(r.url()))targets.push(r.url());});
- await page.route('**/api/gallery',r=>r.fulfill({json:{id:null,works:[],groups:[]}}));
- await page.goto(base);
+ await page.route('**/api/scan',r=>r.fulfill({json:{id:null,works:[],groups:[]}}));
+ await unlockBrowser(page.context(),base);await page.goto(base);
  const link=page.getByRole('link',{name:'Ver colección',exact:true});ok(await link.isVisible(),'Ver colección visible en el encabezado');
  await link.click();await page.getByRole('heading',{name:'Imágenes y sus animaciones',exact:true}).waitFor();
  ok(true,'El botón lleva directamente a la colección');
@@ -17,7 +18,7 @@ try{
   await page.setViewportSize({width,height:844});
   ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`El encabezado no desborda a ${width} px`);
  }
- await page.setViewportSize({width:390,height:844});await page.goto(base);
+ await page.setViewportSize({width:390,height:844});await context.clearCookies({name:'umbral_access'});await page.goto(base);
  await page.getByRole('button',{name:'Ver obra con realidad aumentada',exact:true}).click();
  const iframe=page.frameLocator('.scanner-overlay iframe');
  await iframe.getByRole('button',{name:'Entendido',exact:true}).waitFor();

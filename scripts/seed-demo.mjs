@@ -1,3 +1,4 @@
+import {authorizedFetch as fetch} from './access.mjs';
 import {readFile} from 'node:fs/promises';
 const base=process.env.BASE_URL||'http://127.0.0.1:8788';
 const slots=(await readFile('private/accesos-estudiantes.csv','utf8')).trim().split('\n').slice(1).map(l=>l.trim().split(','));

@@ -1,3 +1,4 @@
+import {authorizedFetch as fetch} from './access.mjs';
 import assert from 'node:assert/strict';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 const base=process.env.BASE_URL||'http://127.0.0.1:8788';

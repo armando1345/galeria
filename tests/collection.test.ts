@@ -16,6 +16,7 @@ async function fixture(shared=false){
   sqlite.prepare("INSERT INTO submissions(id,slot_id,name,title,image_key,video_key,width,height,duration,status) VALUES(?,?,'Autor','Obra',?,?,640,800,6,'approved')").run('piece'+n,n,`private/piece${n}/image`,`private/piece${n}/video`);
  }
  const owner='a'.repeat(64),visitor='b'.repeat(64),ownerHash=await hash(owner);
+ sqlite.prepare("INSERT INTO sessions VALUES(?,'access',NULL,?)").run(await hash('c'.repeat(64)),Date.now()+60000);
  sqlite.prepare("INSERT INTO sessions VALUES(?,'creator',1,?)").run(ownerHash,Date.now()+60000);
  sqlite.prepare("INSERT INTO sessions VALUES(?,'creator',NULL,?)").run(await hash(visitor),Date.now()+60000);
  sqlite.prepare('INSERT INTO uploads(id,owner_hash,expires,published) VALUES(?,?,?,1)').run('piece1',ownerHash,Date.now()+60000);
@@ -25,8 +26,8 @@ async function fixture(shared=false){
  const objects=new Set(['private/piece1/image','private/piece1/video','private/piece2/image','private/piece2/video',...(shared?['targets/shared/0.mind']:['targets/piece1/0.mind','targets/piece2/0.mind'])]);
  let concurrent:(()=>void)|undefined,failStorage=false;
  const db={prepare(sql:string){let args:any[]=[];const s={bind(...values:any[]){args=values;return s;},async first(){return sqlite.prepare(sql).get(...args)||null;},async all(){return {results:sqlite.prepare(sql).all(...args)};},async run(){const r=sqlite.prepare(sql).run(...args);return {meta:{changes:Number(r.changes)}};}};return s;},async batch(statements:any[]){if(concurrent){const hook=concurrent;concurrent=undefined;hook();}sqlite.exec('BEGIN');try{const result=[];for(const statement of statements)result.push(await statement.run());sqlite.exec('COMMIT');return result;}catch(error){sqlite.exec('ROLLBACK');throw error;}}};
- const env={DB:db,MEDIA:{async delete(keys:string|string[]){if(failStorage)throw Error('Storage unavailable');for(const key of Array.isArray(keys)?keys:[keys])objects.delete(key);}},ADMIN_CODE_SHA256:''} as unknown as Env;
- const request=(id:string,token=visitor,origin='https://gallery.test')=>handle(new Request(`https://gallery.test/api/collection/works/${id}/delete`,{method:'POST',headers:{Origin:origin,...(token?{Cookie:`umbral_creator=${token}`}:{})},body:'{}'}),env);
+ const env={DB:db,MEDIA:{async delete(keys:string|string[]){if(failStorage)throw Error('Storage unavailable');for(const key of Array.isArray(keys)?keys:[keys])objects.delete(key);}},ADMIN_CODE_SHA256:'',ACCESS_PIN_SHA256:await hash('2468')} as unknown as Env;
+ const request=(id:string,token=visitor,origin='https://gallery.test')=>handle(new Request(`https://gallery.test/api/collection/works/${id}/delete`,{method:'POST',headers:{Origin:origin,...(token?{Cookie:`umbral_creator=${token}; umbral_access=${'c'.repeat(64)}`}:{})},body:'{}'}),env);
  const current=()=>JSON.parse(sqlite.prepare('SELECT manifest FROM publications ORDER BY rowid DESC LIMIT 1').get()!.manifest as string);
  return {sqlite,env,objects,ownerHash,request,current,setConcurrent(hook:()=>void){concurrent=hook;},setStorageFailure(value:boolean){failStorage=value;}};
 }
@@ -106,7 +107,7 @@ test('Una publicación en curso no puede restaurar una pareja que otro visitante
 });
 test('Empezar otra pareja conserva las publicaciones anteriores del mismo navegador',async()=>{
  const f=await fixture();try{
-  const response=await handle(new Request('https://gallery.test/api/creator/new',{method:'POST',headers:{Origin:'https://gallery.test',Cookie:`umbral_creator=${'a'.repeat(64)}`},body:'{}'}),f.env);
+  const response=await handle(new Request('https://gallery.test/api/creator/new',{method:'POST',headers:{Origin:'https://gallery.test',Cookie:`umbral_creator=${'a'.repeat(64)}; umbral_access=${'c'.repeat(64)}`},body:'{}'}),f.env);
   assert.equal(response.status,200);const data=await response.json() as any;assert.equal(data.slot,null);assert.equal(data.submission,null);
   assert.ok(response.headers.get('set-cookie')?.includes('HttpOnly'));assert.equal(f.current().works.length,2);
   assert.equal(f.sqlite.prepare('SELECT slot_id FROM sessions WHERE hash=?').get(f.ownerHash)?.slot_id,1);

@@ -1,3 +1,4 @@
+import {unlockBrowser} from './access.mjs';
 import {launch} from './browser.mjs';
 import {resolve} from 'node:path';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -8,6 +9,7 @@ try{
  const context=await browser.newContext({viewport:{width:390,height:844},permissions:['camera']});
  const page=await context.newPage(),errors=[];page.on('pageerror',e=>{errors.push(e.message);console.log('BROWSER ERROR',e.message)});
  page.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text().slice(0,250))});
+ await unlockBrowser(context,base);
  const before=await(await page.request.get(base+'/api/gallery')).json();await writeFile('output/autopublish/baseline.json',JSON.stringify(before,null,2));
  await page.goto(base+'/#/estudiante');await page.getByRole('button',{name:'Publicar',exact:true}).waitFor();
  assert.equal(await page.locator('input[type=password],input[type=text]').count(),0);
