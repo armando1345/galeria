@@ -9,8 +9,7 @@ El reconocimiento MindAR se ejecuta en el navegador del visitante. No se envían
 1. Si el servidor sigue encendido, abre **http://127.0.0.1:8788**.
 2. Si está apagado, haz doble clic en `Iniciar-galeria.cmd` y deja abierta esa ventana.
 3. Portal: `http://127.0.0.1:8788/#/estudiante`.
-4. Organizador: `http://127.0.0.1:8788/#/organizador`.
-5. Imágenes, impresión y QR: `http://127.0.0.1:8788/#/pruebas`.
+4. Imágenes, impresión y QR: `http://127.0.0.1:8788/#/pruebas`.
 
 El acceso del organizador está en un archivo privado de este equipo:
 
@@ -212,3 +211,5 @@ private/             Accesos locales: nunca publicar
 MindAR se incluye bajo MIT; licencia en `public/vendor/MINDAR-LICENSE.txt`. Se modificaron únicamente sus imports de Three.js para resolverlos con archivos locales y evitar un importmap inline. Three.js y las demás dependencias conservan sus licencias. FFmpeg solo se usa para generar materiales de prueba; no se incluye en la aplicación web desplegada.
 
 El flujo principal transmite el video de hasta 100 MB directamente a R2 en una solicitud separada de la imagen. El antiguo portal de revisión por código conserva su límite de 50 MiB para cargas multipart; no tiene límite de duración.
+
+La web pública ya no incluye pie de página, acceso ni panel de organización. La antigua ruta `#/organizador` vuelve al inicio; las publicaciones del creador siguen siendo automáticas. Las operaciones internas del servidor permanecen autenticadas para mantenimiento.
