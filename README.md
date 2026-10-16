@@ -1,6 +1,6 @@
 # Galería entre fases — realidad aumentada
 
-Primera versión integral e independiente para 22 estudiantes de Estrategia Publicitaria. Identidad oficial con logo y favicon aportados por el organizador, acento #FEF605 e interfaz en español. Presentación prevista: **19 de octubre de 2026**. Exposición: **26 de noviembre de 2026**.
+Primera versión integral e independiente para una colección ampliable de Estrategia Publicitaria, con al menos 40 obras previstas. Identidad oficial con logo y favicon aportados por el organizador, acento #FEF605 e interfaz en español. Presentación prevista: **19 de octubre de 2026**. Exposición: **26 de noviembre de 2026**.
 
 El reconocimiento MindAR se ejecuta en el navegador del visitante. No se envían fotogramas de la cámara al servidor ni se usa un servicio comercial por reconocimiento.
 
@@ -36,7 +36,7 @@ pnpm build
 pnpm start
 ```
 
-`setup` genera códigos aleatorios de 256 bits y almacena solo sus hashes en la semilla de la base de datos. Si `.dev.vars` ya existe, conserva los accesos. **Copia `private/`, `.dev.vars` y `.wrangler/state/` juntos** para respaldar el entorno local; un clon de Git por sí solo genera otra galería vacía.
+`setup` genera 40 códigos iniciales aleatorios de 256 bits y almacena solo sus hashes en la semilla de la base de datos. Si `.dev.vars` ya existe, conserva los accesos. **Copia `private/`, `.dev.vars` y `.wrangler/state/` juntos** para respaldar el entorno local; un clon de Git por sí solo genera otra galería vacía.
 
 En este entorno de Codex, si pnpm no aparece en PATH, el ejecutable incluido está en:
 
@@ -50,7 +50,7 @@ Para editar con recarga automática: deja `pnpm start` en una terminal y ejecuta
 
 1. Cada estudiante abre **Crea tu obra**, selecciona la imagen inicial y el MP4 y pulsa **Publicar**. Solo hay dos campos de archivos; no se pide código, nombre ni título. Un check confirma la selección de cada archivo, sin mostrar el estado nativo ni el nombre.
 2. El navegador prepara una referencia MindAR de la imagen, reducida a un máximo de 1024 px por lado. Si hay muy pocos detalles reconocibles, muestra un error. Después envía imagen, video y referencia en solicitudes separadas. El video se transmite directamente a R2; el servidor solo lee sus cabeceras y metadatos para validarlo.
-3. El servidor genera una sesión privada mediante una cookie HttpOnly de 90 días. Al publicar la primera entrega, asigna atómicamente un espacio libre de los 22. Abrir el formulario no reserva espacios. El título y participante se asignan automáticamente y el organizador puede editarlos.
+3. El servidor genera una sesión privada mediante una cookie HttpOnly de 90 días. Al publicar la primera entrega, asigna atómicamente un espacio libre; si se ocupan los existentes, crea uno nuevo. Abrir el formulario no reserva espacios. El título y participante se asignan automáticamente y el organizador puede editarlos.
 4. La pieza se aprueba y publica automáticamente, conservando las demás obras públicas. Se muestra **Pieza publicada con éxito. Escanéala para ver el resultado.**, con un botón que abre el escáner de toda la galería. La preparación y la subida pueden tardar; no se anuncia éxito antes de terminar.
 5. **Cambiar archivos** permite publicar otra versión desde el mismo navegador. La anterior sigue visible hasta que termina la nueva publicación. Dos publicaciones simultáneas conservan ambas piezas mediante una escritura condicional en D1.
 6. El organizador conserva el panel de revisión y publicación completa. Sus cambios administrativos requieren publicar de nuevo la colección para hacerse públicos. Puede cerrar o reabrir publicaciones; el servidor también aplica el cierre.
@@ -76,7 +76,7 @@ Este procedimiento es opcional para reorganizar o retirar obras desde el panel. 
 1. Entra como organizador desde una computadora con WebGL y buena conexión.
 2. Aprueba y activa las entregas que quieres mostrar.
 3. Pulsa **Preparar publicación**.
-4. Elige **Un solo escáner** para intentar las 22 referencias juntas. Si el rendimiento medido en celulares es insuficiente, elige **Grupos de hasta 6**.
+4. Elige **Un solo escáner** para intentar todas las referencias juntas. Si el rendimiento medido en celulares es insuficiente, elige **Grupos de hasta 6**.
 5. Pulsa **Compilar referencias**, espera el 100 % y mantén la ventana abierta. Con muchas imágenes puede tardar varios minutos.
 6. Pulsa **Publicar esta colección**. El servidor verifica versión MindAR, número de referencias, dimensiones, orden de IDs y que las aprobaciones no cambiaron durante la compilación.
 7. Prueba el escáner y las tres imágenes antes de distribuir el QR.
@@ -85,7 +85,7 @@ El `.mind` se compila mediante `Compiler.compileImageTargets()` y `exportData()`
 
 El organizador debe recompilar **toda la selección** después de cambiar ilustraciones o de activar/desactivar obras. El botón de publicación no acepta que se cambie el orden manualmente. Una publicación de cero obras está deshabilitada para evitar vaciar accidentalmente la exposición.
 
-El escáner principal combina en memoria las referencias públicas y reconoce todas las obras. Cada grupo conserva el orden original de sus referencias (`sourceIds`), de modo que reemplazar una pieza no desplaza la asociación de las otras con sus videos. La ruta avanzada `#/escaner` también permite seleccionar un grupo. El rendimiento con 22 referencias todavía necesita medición en teléfonos reales.
+El escáner principal combina en memoria las referencias públicas y reconoce todas las obras. Cada grupo conserva el orden original de sus referencias (`sourceIds`), de modo que reemplazar una pieza no desplaza la asociación de las otras con sus videos. La ruta avanzada `#/escaner` también permite seleccionar un grupo. El rendimiento con 40 o más referencias todavía necesita medición en teléfonos reales.
 
 ## Escáner y recursos
 
@@ -118,7 +118,7 @@ Sustituye el `database_id` provisional de `wrangler.toml` por el UUID devuelto. 
 ```sh
 pnpm exec wrangler r2 bucket create umbral-galeria-media
 pnpm exec wrangler pages project create umbral-galeria --production-branch main
-pnpm exec wrangler d1 execute galeria --remote --file migrations/0001.sql
+pnpm exec wrangler d1 migrations apply galeria --remote
 pnpm exec wrangler d1 execute galeria --remote --file private/seed.sql
 pnpm build
 ```
@@ -155,7 +155,7 @@ Para GitHub: crea un repositorio **privado** nuevo, añade su URL como `origin` 
 
 No hay cobro por reconocimiento: el cómputo de cámara es del celular. El alojamiento, las funciones y el almacenamiento sí están sujetos a las cuotas de tu cuenta. No se puede garantizar gasto cero solamente por usar estos productos; revisa la cuenta y sus límites antes de habilitarlos. Las revisiones y publicaciones anteriores se conservan, por lo que R2 crece con cada reemplazo.
 
-La validación inspecciona contenedores y evita descomprimir millones de píxeles en un Worker. **Falta medir CPU y memoria en Cloudflare Free con los tamaños máximos reales**, especialmente al subir archivos grandes o publicar 22 referencias. La simulación local no aplica todos los límites comerciales. Si se exceden, primero reduce tamaños y grupos y revisa la función; no actives un plan de pago automáticamente.
+La validación inspecciona contenedores y evita descomprimir millones de píxeles en un Worker. **Falta medir CPU y memoria en Cloudflare Free con los tamaños máximos reales**, especialmente al subir archivos grandes o publicar 40 o más referencias. La simulación local no aplica todos los límites comerciales. Si se exceden, primero reduce tamaños y grupos y revisa la función; no actives un plan de pago automáticamente.
 
 Fuentes oficiales consultadas el 15 de octubre de 2026:
 
@@ -191,7 +191,7 @@ Para Chromium, instala el navegador de Playwright con `pnpm exec playwright inst
 
 Los scripts aceptan `BASE_URL` para apuntar a esa copia local. Herramientas verificadas el 16/10/2026: Vite 6.4.4 y Wrangler 4.151.1. La publicación completa del panel se rechaza si otra publicación cambió la galería durante el proceso; vuelve a prepararla con la selección actual.
 
-Si actualizas una base ya instalada, aplica también `migrations/0002_uploads.sql` con `wrangler d1 execute galeria --local --file migrations/0002_uploads.sql` (usa `--remote` únicamente para tu entorno remoto). Una instalación nueva ya incluye la tabla de cargas en `0001.sql`.
+Aplica todas las migraciones con `pnpm db:local` para el entorno local. La migración `0003_expand_spaces.sql` elimina el tope de 22 y prepara 40 espacios, conservando entregas, accesos y publicaciones. Después, la aplicación crea nuevos espacios conforme se necesiten. En Cloudflare usa `wrangler d1 migrations apply galeria --remote`.
 
 ## Estructura
 

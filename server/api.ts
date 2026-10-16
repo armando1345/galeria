@@ -1,4 +1,5 @@
 import {creatorPublication} from './creator-publication';
+import {reserveSpace} from './spaces';
 import { decode } from '@msgpack/msgpack';
 import {ensure,HttpError,imageInfo,videoInfo,validatePair} from './media';
 export interface Env {DB:D1Database;MEDIA:R2Bucket;ADMIN_CODE_SHA256:string}
@@ -68,9 +69,9 @@ export async function handle(req:Request,env:Env):Promise<Response>{
    if(automatic&&who.slot_id===null){
      claimHash=await hash(cookieToken(req,'umbral_creator')!);
      // One SQLite statement claims a free space; concurrent browsers cannot share it.
-     await env.DB.prepare("UPDATE sessions SET slot_id=(SELECT slots.id FROM slots WHERE NOT EXISTS(SELECT 1 FROM submissions WHERE submissions.slot_id=slots.id) AND NOT EXISTS(SELECT 1 FROM sessions reserved WHERE reserved.slot_id=slots.id AND reserved.expires>?) ORDER BY slots.id LIMIT 1) WHERE hash=? AND slot_id IS NULL AND expires>?").bind(Date.now(),claimHash,Date.now()).run();
+     await reserveSpace(env,claimHash);
      who=await session(req,env,'umbral_creator');
-     ensure(who&&who.slot_id!==null,'El proyecto ya tiene sus 22 espacios ocupados.',409);
+     ensure(who&&who.slot_id!==null,'No se pudo asignar un espacio. Vuelve a intentarlo.',409);
    }
    ensure(who.slot_id!==null,'No se pudo asignar un espacio.',409);
    const slot=who.slot_id;
@@ -97,7 +98,7 @@ export async function handle(req:Request,env:Env):Promise<Response>{
  if(path==='/admin/prepare'&&req.method==='GET'){const rows=await candidates(env);return json({digest:await digest(rows),works:rows.map(publicWork)});}
  if(path==='/admin/publish'&&req.method==='POST'){
    const form=await req.formData(),base=await publicManifest(env),rows=await candidates(env);ensure(rows.length>0,'Aprueba al menos una obra.');ensure(form.get('digest')===await digest(rows),'Las aprobaciones cambiaron. Vuelve a compilar.',409);
-   const raw=form.get('groups');ensure(typeof raw==='string','Faltan los grupos.');const groups=JSON.parse(raw) as {ids:string[]}[];ensure(Array.isArray(groups)&&groups.length<=22,'Grupos inválidos.');ensure(JSON.stringify(groups.flatMap(x=>x.ids))===JSON.stringify(rows.map(x=>x.id)),'El orden de referencias no coincide con las obras.',409);
+   const raw=form.get('groups');ensure(typeof raw==='string','Faltan los grupos.');const groups=JSON.parse(raw) as {ids:string[]}[];ensure(Array.isArray(groups)&&groups.length>0&&groups.length<=rows.length&&groups.every(g=>Array.isArray(g?.ids)&&g.ids.length>0),'Grupos inválidos.');ensure(JSON.stringify(groups.flatMap(x=>x.ids))===JSON.stringify(rows.map(x=>x.id)),'El orden de referencias no coincide con las obras.',409);
    const buffers:Uint8Array[]=[];
    for(let i=0;i<groups.length;i++){const file:unknown=form.get(`target${i}`);ensure(file instanceof File&&file.size>100&&file.size<=24*1024*1024,'Referencia .mind inválida.');const bytes=new Uint8Array(await file.arrayBuffer());let parsed:any;try{parsed=decode(bytes);}catch{throw new HttpError(400,'El archivo no es una referencia MindAR.');}ensure(parsed.v===2&&parsed.dataList?.length===groups[i].ids.length,'Número o versión de referencias incorrecto.');for(let j=0;j<groups[i].ids.length;j++){const row=rows.find(x=>x.id===groups[i].ids[j])!;const t=parsed.dataList[j];ensure(t.targetImage?.width===row.width&&t.targetImage?.height===row.height&&t.matchingData?.length>0&&t.trackingData?.length>0,'Referencia incompatible con su ilustración.');}buffers.push(bytes);}
    const id=crypto.randomUUID(),works=rows.map(publicWork);const manifest={id,createdAt:new Date().toISOString(),works,groups:groups.map((g,i)=>({id:i,target:`/api/targets/${id}/${i}.mind`,ids:g.ids}))};

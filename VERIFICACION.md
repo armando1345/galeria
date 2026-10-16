@@ -1,5 +1,14 @@
 # Verificación de Galería entre fases
 
+## Capacidad ampliable y título — 16 de octubre de 2026
+
+Se retiró el tope de 22 obras. La migración 0003 conserva los IDs, códigos existentes, entregas, sesiones y publicación, y prepara 40 espacios iniciales. Cuando se ocupan, el servidor crea y reserva un espacio adicional en una transacción D1. El panel calcula sus totales con los datos reales. La publicación del organizador admite más de 22 grupos. Se mantienen las protecciones de sesión y los límites de intentos por IP.
+
+Verificación: 16 pruebas unitarias aprobadas, incluida una migración repetida que preserva una entrega del espacio 22, 50 asignaciones simultáneas únicas y publicación administrativa de 45 grupos. Además, en una copia aislada se publicaron 50 obras mediante las rutas reales de carga y publicación con D1/R2 locales. Se conservaron las tres demos previas y se llegó al espacio 53. Informe: `output/capacity-tests.json`. Esta prueba repite una referencia de demostración para comprobar capacidad; no mide reconocimiento de 50 imágenes distintas ni rendimiento físico de cámara.
+
+El panel local mostró 40 espacios y conservó las tres demos. El título de la pestaña principal se comprobó como **Galería entre fases**, sin descriptor, en portada, creación y organizador. El código y la carpeta de subida se sincronizan con GitHub. Falta aplicar la migración en D1 remoto y comprobar 40 imágenes distintas definitivas en celulares.
+
+
 ## Revisión previa a Cloudflare — 16 de octubre de 2026
 
 **Resultado: flujo local aprobado para iniciar un despliegue de prueba.** La revisión se ejecutó sobre una copia de D1/R2 en `.wrangler/review-20261016`, servida en `127.0.0.1:8790`. Los datos de la galería habitual en 8788 no se usaron para publicar material de prueba. No se creó ni conectó infraestructura remota.

@@ -2,6 +2,7 @@ import {Buffer} from 'node:buffer';
 import {decode} from '@msgpack/msgpack';
 import {ensure,HttpError,imageInfo,videoInfo,validatePair} from './media';
 import type {Env} from './api';
+import {reserveSpace} from './spaces';
 
 type Ticket={id:string;owner_hash:string;image_meta:string|null;video_meta:string|null;published:number;expires:number};
 type Manifest={id:string|null;createdAt?:string;works:any[];groups:{id:number;target:string;ids:string[];sourceIds?:string[]}[]};
@@ -87,10 +88,7 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
   ensure(target.matchingData?.length>0&&target.trackingData?.length>0,'No se pudieron encontrar detalles reconocibles.');
   const points=Math.max(...target.matchingData.map((frame:any)=>(frame.maximaPoints?.length||0)+(frame.minimaPoints?.length||0)));
   ensure(points>=20,'La imagen tiene muy pocos detalles para reconocerla. Usa una ilustración con más contraste.');
-  await env.DB.prepare("UPDATE sessions SET slot_id=(SELECT slots.id FROM slots WHERE NOT EXISTS(SELECT 1 FROM submissions WHERE submissions.slot_id=slots.id) AND NOT EXISTS(SELECT 1 FROM sessions reserved WHERE reserved.slot_id=slots.id AND reserved.expires>?) ORDER BY slots.id LIMIT 1) WHERE hash=? AND slot_id IS NULL AND expires>?").bind(Date.now(),ownerHash,Date.now()).run();
-  const person=await env.DB.prepare('SELECT slot_id FROM sessions WHERE hash=? AND expires>?').bind(ownerHash,Date.now()).first<{slot_id:number|null}>();
-  ensure(person?.slot_id!==null&&person?.slot_id!==undefined,'El proyecto ya tiene sus 22 espacios ocupados.',409);
-  const slot=person.slot_id;
+  const slot=await reserveSpace(env,ownerHash);
   const previous=await env.DB.prepare('SELECT name,title FROM submissions WHERE slot_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1').bind(slot).first<{name:string;title:string}>();
   const name=previous?.name||`Participante ${String(slot).padStart(2,'0')}`,title=previous?.title||`Obra ${String(slot).padStart(2,'0')}`;
   await env.DB.prepare("INSERT OR IGNORE INTO submissions(id,slot_id,name,title,image_key,video_key,width,height,duration,status) VALUES (?,?,?,?,?,?,?,?,?,'pending')").bind(id,slot,name,title,image.key,video.key,image.width,image.height,video.duration).run();

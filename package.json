@@ -7,7 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build",
     "start": "wrangler pages dev dist --ip 127.0.0.1 --port 8788",
-    "db:local": "wrangler d1 execute galeria --local --file migrations/0001.sql",
+    "db:local": "wrangler d1 migrations apply galeria --local",
     "setup": "node scripts/setup.mjs",
     "demo": "node scripts/seed-demo.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
@@ -17,7 +17,8 @@
     "test:creator": "node scripts/test-creator.mjs",
     "test:publish": "node scripts/generate-publication-fixtures.mjs && node scripts/test-autopublish.mjs",
     "test:publish-api": "node scripts/test-publication-api.mjs",
-    "test:errors": "node scripts/test-errors.mjs"
+    "test:errors": "node scripts/test-errors.mjs",
+    "test:capacity": "node scripts/test-capacity.mjs"
   },
   "dependencies": {
     "@msgpack/msgpack": "2.8.0",
