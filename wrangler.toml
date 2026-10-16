@@ -1,0 +1,12 @@
+name = "umbral-galeria"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-10-11"
+compatibility_flags = ["nodejs_compat"]
+[[d1_databases]]
+binding = "DB"
+database_name = "galeria"
+database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "migrations"
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "umbral-galeria-media"

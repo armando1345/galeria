@@ -1,0 +1,40 @@
+{
+  "name": "umbral-galeria-ar",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build",
+    "start": "wrangler pages dev dist --ip 127.0.0.1 --port 8788",
+    "db:local": "wrangler d1 execute galeria --local --file migrations/0001.sql",
+    "setup": "node scripts/setup.mjs",
+    "demo": "node scripts/seed-demo.mjs",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:flow": "node scripts/test-flow.mjs",
+    "test:ui": "node scripts/test-ui.mjs",
+    "test:camera": "node scripts/generate-camera.mjs && node scripts/test-camera.mjs",
+    "test:creator": "node scripts/test-creator.mjs",
+    "test:publish": "node scripts/generate-publication-fixtures.mjs && node scripts/test-autopublish.mjs",
+    "test:publish-api": "node scripts/test-publication-api.mjs",
+    "test:errors": "node scripts/test-errors.mjs"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "2.8.0",
+    "qrcode": "1.5.4",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "4.20251014.0",
+    "@types/node": "24.10.0",
+    "@types/qrcode": "1.5.5",
+    "@types/three": "0.160.0",
+    "ffmpeg-static": "5.3.0",
+    "playwright": "1.56.1",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "vite": "6.4.4",
+    "wrangler": "4.151.1"
+  },
+  "packageManager": "pnpm@11.25.0"
+}

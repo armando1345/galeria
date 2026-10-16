@@ -1,0 +1,3 @@
+import ffmpeg from 'ffmpeg-static';
+import {execFileSync} from 'node:child_process';
+execFileSync(ffmpeg,['-y','-loop','1','-t','9','-i','public/demo/01.png','-loop','1','-t','9','-i','public/demo/02.png','-loop','1','-t','9','-i','public/demo/03.png','-filter_complex','[0:v]scale=384:480,pad=512:640:64:80:color=0xeeeeee,setsar=1,fps=10[v0];[1:v]scale=384:480,pad=512:640:64:80:color=0xeeeeee,setsar=1,fps=10[v1];[2:v]scale=384:480,pad=512:640:64:80:color=0xeeeeee,setsar=1,fps=10[v2];[v0][v1][v2]concat=n=3:v=1:a=0,format=yuv420p[out]','-map','[out]','-pix_fmt','yuv420p','private/camera.y4m'],{stdio:'pipe'});console.log('Entrada de cámara sintética: tres ilustraciones, 9 segundos por obra.');
