@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS deleted_works (
+  id TEXT PRIMARY KEY,
+  slot_id INTEGER NOT NULL,
+  image_key TEXT NOT NULL,
+  video_key TEXT NOT NULL,
+  target_keys TEXT NOT NULL,
+  completed INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

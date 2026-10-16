@@ -56,22 +56,27 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
     const limit=kind==='image'?12*1024*1024:100_000_000;
     const size=Number(req.headers.get('X-Upload-Size')||req.headers.get('Content-Length'));
     ensure(Number.isSafeInteger(size)&&size>0&&size<=limit,`Máximo ${kind==='image'?'12 MB para la imagen':'100 MB para el video'}.`,413);
+    const saveMeta=async(meta:Record<string,unknown>)=>{
+      try{const stored=await env.DB.prepare(`UPDATE uploads SET ${kind}_meta=? WHERE id=? AND published=0 AND NOT EXISTS(SELECT 1 FROM submissions WHERE id=?)`).bind(JSON.stringify({...meta,key:assetKey}),id,id).run();ensure(stored.meta.changes===1,'Esta pareja ya no admite cambios. Crea una nueva publicación.',409);}
+      catch(error){await env.MEDIA.delete(assetKey);throw error;}
+    };
     if(kind==='image'){
       const bytes=await readLimited(req,limit);ensure(bytes.length===size,'Tamaño de imagen inválido.');
       const meta=imageInfo(bytes);await env.MEDIA.put(assetKey,bytes,{httpMetadata:{contentType:meta.mime}});
-      await env.DB.prepare('UPDATE uploads SET image_meta=? WHERE id=?').bind(JSON.stringify({...meta,key:assetKey}),id).run();
+      await saveMeta(meta);
     }else{
       ensure(req.body,'Falta el video.');
       const fixed=new FixedLengthStream(size);
       try{
         await Promise.all([req.body.pipeTo(fixed.writable),env.MEDIA.put(assetKey,fixed.readable,{httpMetadata:{contentType:'video/mp4'}})]);
         const meta=await storedVideoInfo(env,assetKey,size);
-        await env.DB.prepare('UPDATE uploads SET video_meta=? WHERE id=?').bind(JSON.stringify({...meta,key:assetKey}),id).run();
+        await saveMeta(meta);
       }catch(error){await env.MEDIA.delete(assetKey);if(error instanceof HttpError)throw error;throw new HttpError(400,'No se pudo completar el video. Vuelve a seleccionarlo e inténtalo de nuevo.');}
     }
     return json({ok:true});
   }
 
+  ensure(!await env.DB.prepare('SELECT id FROM deleted_works WHERE id=?').bind(id).first(),'Esta pareja fue eliminada. Crea una nueva publicación.',410);
   const current=await readManifest(env);
   if(current.works.some(w=>w.id===id))return json({ok:true,id,published:true});
   ensure(!ticket.published,'Esta versión ya fue reemplazada.',409);
@@ -91,8 +96,9 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
   const slot=await reserveSpace(env,ownerHash);
   const previous=await env.DB.prepare('SELECT name,title FROM submissions WHERE slot_id=? ORDER BY created_at DESC,rowid DESC LIMIT 1').bind(slot).first<{name:string;title:string}>();
   const name=previous?.name||`Participante ${String(slot).padStart(2,'0')}`,title=previous?.title||`Obra ${String(slot).padStart(2,'0')}`;
-  await env.DB.prepare("INSERT OR IGNORE INTO submissions(id,slot_id,name,title,image_key,video_key,width,height,duration,status) VALUES (?,?,?,?,?,?,?,?,?,'pending')").bind(id,slot,name,title,image.key,video.key,image.width,image.height,video.duration).run();
+  await env.DB.prepare("INSERT OR IGNORE INTO submissions(id,slot_id,name,title,image_key,video_key,width,height,duration,status) SELECT ?,?,?,?,?,?,?,?,?,'pending' WHERE NOT EXISTS(SELECT 1 FROM deleted_works WHERE id=?)").bind(id,slot,name,title,image.key,video.key,image.width,image.height,video.duration,id).run();
   await env.MEDIA.put(`targets/${id}/0.mind`,bytes,{httpMetadata:{contentType:'application/octet-stream'}});
+  if(await env.DB.prepare('SELECT id FROM deleted_works WHERE id=?').bind(id).first()){await env.MEDIA.delete(`targets/${id}/0.mind`);throw new HttpError(410,'Esta pareja fue eliminada. Crea una nueva publicación.');}
   for(let attempt=0;attempt<5;attempt++){
     const base=await readManifest(env);
     if(base.works.some(w=>w.id===id))return json({ok:true,id,published:true});
@@ -104,11 +110,12 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
     // Compare-and-insert inside SQLite prevents two simultaneous publishers
     // from overwriting each other's completed pieces.
     const committed=await env.DB.batch([
-      env.DB.prepare("INSERT INTO publications(id,manifest) SELECT ?,? WHERE COALESCE((SELECT id FROM publications ORDER BY rowid DESC LIMIT 1),'')=? AND (SELECT value FROM settings WHERE key='closed')='false'").bind(publicationId,JSON.stringify(manifest),base.id||''),
+      env.DB.prepare("INSERT INTO publications(id,manifest) SELECT ?,? WHERE COALESCE((SELECT id FROM publications ORDER BY rowid DESC LIMIT 1),'')=? AND (SELECT value FROM settings WHERE key='closed')='false' AND NOT EXISTS(SELECT 1 FROM deleted_works WHERE id=?)").bind(publicationId,JSON.stringify(manifest),base.id||'',id),
       env.DB.prepare("UPDATE submissions SET status='approved',active=1 WHERE id=? AND EXISTS(SELECT 1 FROM publications WHERE id=?)").bind(id,publicationId),
       env.DB.prepare('UPDATE uploads SET published=1 WHERE id=? AND EXISTS(SELECT 1 FROM publications WHERE id=?)').bind(id,publicationId)
     ]);
     if(committed[0].meta.changes===1)return json({ok:true,id,slot,published:true});
+    ensure(!await env.DB.prepare('SELECT id FROM deleted_works WHERE id=?').bind(id).first(),'Esta pareja fue eliminada. Crea una nueva publicación.',410);
     ensure((await env.DB.prepare("SELECT value FROM settings WHERE key='closed'").first<{value:string}>())?.value!=='true','Las publicaciones se cerraron durante la carga.',409);
   }
   throw new HttpError(409,'La galería está recibiendo otra publicación. Vuelve a pulsar Publicar.');

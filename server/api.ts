@@ -1,3 +1,4 @@
+import {deletePair} from './collection';
 import {creatorPublication} from './creator-publication';
 import {reserveSpace} from './spaces';
 import { decode } from '@msgpack/msgpack';
@@ -22,10 +23,12 @@ export async function handle(req:Request,env:Env):Promise<Response>{
  if(req.method!=='GET'&&req.method!=='HEAD') {ensure(req.headers.get('Origin')===url.origin,'Origen de solicitud no permitido.',403);const bodyLimit=/^\/creator\/uploads\/[a-f0-9-]{36}\/video$/.test(path)?100_000_000:64*1024*1024;ensure(Number(req.headers.get('Content-Length')||0)<=bodyLimit,'La carga supera el tamaño permitido.',413);}
  if(path==='/gallery'&&req.method==='GET')return json(await publicManifest(env));
  let who=await session(req,env);
- const creator=path.startsWith('/creator/')||path.startsWith('/media/')?await session(req,env,'umbral_creator'):null;
+ const creator=path.startsWith('/creator/')||path.startsWith('/media/')||path.startsWith('/collection/')?await session(req,env,'umbral_creator'):null;
  if(path.startsWith('/creator/uploads')){ensure(creator?.role==='creator','Abre Crea tu obra para publicar.',401);return await creatorPublication(req,env,await hash(cookieToken(req,'umbral_creator')!));}
- if(path==='/creator/session'&&req.method==='POST'){
-   if(creator?.role==='creator')return json(await creatorData(env,creator));
+ const deletion=path.match(/^\/collection\/works\/([a-zA-Z0-9_-]{1,100})\/delete$/);
+ if(deletion&&req.method==='POST'){ensure(creator?.role==='creator'||who?.role==='admin','Abre la colección para continuar.',401);return await deletePair(env,deletion[1]);}
+ if((path==='/creator/session'||path==='/creator/new')&&req.method==='POST'){
+   if(path==='/creator/session'&&creator?.role==='creator')return json(await creatorData(env,creator));
    const key=await hash('creator:'+(req.headers.get('CF-Connecting-IP')||'local'));const attempt=await env.DB.prepare('SELECT count,reset FROM attempts WHERE key=?').bind(key).first<{count:number;reset:number}>();
    ensure(!attempt||attempt.reset<Date.now()||attempt.count<40,'Demasiadas sesiones nuevas. Vuelve a intentarlo más tarde.',429);
    await env.DB.prepare('INSERT INTO attempts(key,count,reset) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN reset<? THEN 1 ELSE count+1 END,reset=CASE WHEN reset<? THEN excluded.reset ELSE reset END').bind(key,Date.now()+3600000,Date.now(),Date.now()).run();

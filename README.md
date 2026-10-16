@@ -215,3 +215,9 @@ El flujo principal transmite el video de hasta 100 MB directamente a R2 en una s
 La web pública ya no incluye pie de página, acceso ni panel de organización. La antigua ruta `#/organizador` vuelve al inicio; las publicaciones del creador siguen siendo automáticas. Las operaciones internas del servidor permanecen autenticadas para mantenimiento.
 
 La cámara también funciona con la colección vacía: abre el video del dispositivo y muestra la indicación inicial hasta pulsar Entendido, sin cargar MindAR ni referencias cuando no hay obras. Ver colección, en el encabezado, abre `#/obras`. El escáner ya no incluye Reiniciar cámara ni Ver animaciones sin cámara; conserva mensajes breves para errores reales de permisos. Prueba dedicada: `pnpm test:empty-camera`.
+
+## Colección compartida y parejas
+
+Ver colección utiliza el amarillo de la marca y una animación circular al pasar el cursor o enfocar con teclado. Cada tarjeta reúne la imagen y su video. La colección vacía muestra «Aún no hay contenido publicado». Cualquier visitante puede borrar una pareja publicada después de confirmar «Borrar imagen y video», sin registro ni código. Se eliminan ambos archivos y las referencias que ya no se usan; se conserva una referencia compartida si otra pareja aún depende de ella. Subir otra pareja crea una publicación independiente, sin reemplazar las demás.
+
+La migración `migrations/0004_deleted_works.sql` registra borrados para impedir que una publicación simultánea restaure la pareja y permite terminar un borrado si el almacenamiento falla temporalmente. Las instalaciones nuevas lo incluyen con `pnpm db:local`; una instalación remota existente necesita `pnpm exec wrangler d1 execute galeria --remote --file migrations/0004_deleted_works.sql`. La prueba `pnpm test:collection` requiere un servidor aislado en 8790 y las referencias de demostración locales en 8788 (configurables con BASE_URL y REFERENCE_BASE); rechaza usar la misma base o un destino remoto.
