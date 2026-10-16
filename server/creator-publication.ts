@@ -1,6 +1,6 @@
 import {Buffer} from 'node:buffer';
 import {decode} from '@msgpack/msgpack';
-import {ensure,HttpError,imageInfo,videoInfo,validatePair} from './media';
+import {ensure,HttpError,imageInfo,videoInfo} from './media';
 import type {Env} from './api';
 import {reserveSpace} from './spaces';
 
@@ -76,7 +76,7 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
   if(current.works.some(w=>w.id===id))return json({ok:true,id,published:true});
   ensure(!ticket.published,'Esta versión ya fue reemplazada.',409);
   ensure(ticket.image_meta&&ticket.video_meta,'Falta subir la imagen o el video.');
-  const image=JSON.parse(ticket.image_meta),video=JSON.parse(ticket.video_meta);validatePair(image,video);
+  const image=JSON.parse(ticket.image_meta),video=JSON.parse(ticket.video_meta);
   ensure(Number(req.headers.get('Content-Length')||0)<=8*1024*1024,'La referencia es demasiado grande.',413);
   const bytes=await readLimited(req,8*1024*1024);ensure(bytes.length>100,'Referencia inválida.');
   let reference:any;try{reference=decode(bytes);}catch{throw new HttpError(400,'La referencia no se pudo preparar.');}

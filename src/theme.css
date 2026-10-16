@@ -45,3 +45,6 @@
 .published-piece #replace-creation{display:flex;margin:25px auto}
 
 .wordmark{display:inline-flex;align-items:center;flex-shrink:0}.wordmark .brand-logo{width:172px;height:auto}.wordmark.small .brand-logo{width:140px}@media(max-width:700px){.wordmark .brand-logo{width:140px}}
+
+.creator-page .file-zone video.framed-video{max-height:none;max-width:min(100%,calc(220px * var(--frame-ratio)));height:auto}
+@media(max-width:700px){.creator-page .file-zone video.framed-video{max-width:min(100%,calc(160px * var(--frame-ratio)))}}

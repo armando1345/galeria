@@ -1,7 +1,7 @@
 import {creatorPublication} from './creator-publication';
 import {reserveSpace} from './spaces';
 import { decode } from '@msgpack/msgpack';
-import {ensure,HttpError,imageInfo,videoInfo,validatePair} from './media';
+import {ensure,HttpError,imageInfo,videoInfo} from './media';
 export interface Env {DB:D1Database;MEDIA:R2Bucket;ADMIN_CODE_SHA256:string}
 type Submission={id:string;slot_id:number;name:string;title:string;image_key:string;video_key:string;width:number;height:number;duration:number;status:string;active:number;feedback:string;demo:number;created_at:string};
 type Session={role:string;slot_id:number|null};
@@ -64,7 +64,7 @@ export async function handle(req:Request,env:Env):Promise<Response>{
    ensure(image instanceof File&&video instanceof File,'Selecciona la imagen inicial y el video.');
    ensure(image.size<=12*1024*1024&&video.size<=50*1024*1024,'Máximos: imagen 12 MB; video 50 MB.');
    const ib=new Uint8Array(await image.arrayBuffer()),vb=new Uint8Array(await video.arrayBuffer());
-   const im=imageInfo(ib),vi=videoInfo(vb);validatePair(im,vi);
+   const im=imageInfo(ib),vi=videoInfo(vb);
    let claimHash:string|null=null;
    if(automatic&&who.slot_id===null){
      claimHash=await hash(cookieToken(req,'umbral_creator')!);

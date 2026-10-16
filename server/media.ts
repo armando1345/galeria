@@ -37,4 +37,3 @@ export function videoInfo(bytes:Uint8Array) {
  const d=duration(b,child(b,mdia,'mdhd')); ensure(d>0&&d<=15.05&&movieDuration>0&&movieDuration<=15.05,'El video debe durar como máximo 15 segundos.');ensure(width>=320&&height>=320&&width<=1920&&height<=1920,'Video: entre 320 y 1920 px por lado.');result={width,height,duration:Math.max(d,movieDuration)};
  } ensure(videos===1&&result,'El MP4 debe tener exactamente una pista de video.');return result;
 }
-export function validatePair(image:ReturnType<typeof imageInfo>,video:ReturnType<typeof videoInfo>){ensure(Math.abs(image.width/image.height-video.width/video.height)/(image.width/image.height)<0.01,'La ilustración y el video deben tener la misma proporción (tolerancia 1 %).');}

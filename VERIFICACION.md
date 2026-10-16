@@ -100,3 +100,9 @@ Los archivos de `output/` son evidencia local y no se incluyen en el despliegue.
 - Al terminar, conservar la publicación conocida que funciona. Para el evento del 26 de noviembre, repetir el ensayo con **cada obra definitiva** y la conexión del lugar.
 
 La primera versión está verificada de extremo a extremo **en el entorno local descrito**. La aprobación definitiva de la experiencia física requiere completar estas comprobaciones en celulares con HTTPS.
+
+## Recorte del video — 16 de octubre de 2026
+
+Se eliminó el bloqueo por diferencia de proporción entre imagen y video. La referencia sigue obligada a coincidir con la imagen original. La vista previa y la textura del escáner recortan el video desde el centro para llenar la imagen, sin deformación ni transcodificación.
+
+Verificado: 17 pruebas unitarias, TypeScript de cliente y servidor, compilación Vite, y publicación real en una base local aislada con imagen 640×800 y video 640×820. La cámara sintética reconoció la pieza, reprodujo el video y detuvo las pistas al cerrar. Evidencias locales: `output/video-frame/result.json`, `preview.png` y `scanner.png`. No se subieron obras de prueba a producción.

@@ -67,7 +67,7 @@ Se admite un máximo de 12 intentos de publicación por navegador al día. Las r
 
 El servidor inspecciona firmas, estructura, dimensiones y CRC de PNG; segmentos y cierre de JPEG; cajas, códec, duración y dimensiones de MP4. No confía en extensiones, MIME ni dimensiones enviados por el formulario. No transcodifica ni decodifica todos los fotogramas. Los navegadores decodifican las imágenes en las vistas previas y al compilar. Un MP4 con metadatos manipulados no equivale a una certificación del flujo H.264 completo. Exporta material normal y comprueba su reproducción en la vista previa. Los MP4 admiten hasta 30 cajas principales y 2 MiB de metadatos `moov`; una exportación H.264 normal queda ampliamente por debajo.
 
-Recomendación de exportación: imagen alrededor de 800–1200 px de ancho, video 640×800 o 720×900 si es vertical 4:5, H.264, píxeles cuadrados, `yuv420p`, sin rotación, 24/30 fps, inicio del video idéntico a la ilustración. No se necesita audio. No se modifica la proporción ni se recorta automáticamente.
+Recomendación de exportación: imagen alrededor de 800–1200 px de ancho, video 640×800 o 720×900 si es vertical 4:5, H.264, píxeles cuadrados, `yuv420p`, sin rotación, 24/30 fps, inicio del video idéntico a la ilustración. No se necesita audio. Si las proporciones difieren, la vista previa y el escáner aplican un recorte centrado para llenar la imagen sin deformar el video. Los archivos originales se conservan; conviene usar la misma proporción para evitar recortes.
 
 ## Compilar y publicar referencias MindAR
 
