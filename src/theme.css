@@ -51,3 +51,6 @@
 
 .creator-page .creator-intro{font-size:19px;line-height:1.5;margin:-16px auto 32px;max-width:580px}
 @media(max-width:700px){.creator-page .creator-intro{font-size:18px;margin:-12px auto 28px;max-width:340px}}
+
+.collection-link{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:10px 14px;border:1px solid var(--line);border-radius:3px;font-size:12px;white-space:nowrap}.collection-link:hover{border-color:var(--ink)}
+@media(max-width:700px){.collection-link{font-size:11px;padding:10px 12px}}

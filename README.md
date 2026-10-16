@@ -213,3 +213,5 @@ MindAR se incluye bajo MIT; licencia en `public/vendor/MINDAR-LICENSE.txt`. Se m
 El flujo principal transmite el video de hasta 100 MB directamente a R2 en una solicitud separada de la imagen. El antiguo portal de revisión por código conserva su límite de 50 MiB para cargas multipart; no tiene límite de duración.
 
 La web pública ya no incluye pie de página, acceso ni panel de organización. La antigua ruta `#/organizador` vuelve al inicio; las publicaciones del creador siguen siendo automáticas. Las operaciones internas del servidor permanecen autenticadas para mantenimiento.
+
+La cámara también funciona con la colección vacía: abre el video del dispositivo y muestra la indicación inicial hasta pulsar Entendido, sin cargar MindAR ni referencias cuando no hay obras. Ver colección, en el encabezado, abre `#/obras`. El escáner ya no incluye Reiniciar cámara ni Ver animaciones sin cámara; conserva mensajes breves para errores reales de permisos. Prueba dedicada: `pnpm test:empty-camera`.
