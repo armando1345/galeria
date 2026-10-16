@@ -8,7 +8,7 @@ ok((await request('/creator/uploads','',{})).status===401,'La publicación requi
 const da=await(await request('/creator/uploads',a,{})).json(),db=await(await request('/creator/uploads',b,{})).json();
 ok((await request(`/creator/uploads/${da.id}/image`,b,Buffer.from('x'))).status===403,'Otra sesión no puede modificar la carga');
 ok((await request(`/creator/uploads/${da.id}/image`,a,Buffer.from('x'),{'X-Upload-Size':String(12*1024*1024+1)})).status===413,'Imagen superior a 12 MiB se rechaza');
-ok((await request(`/creator/uploads/${da.id}/video`,a,Buffer.from('x'),{'X-Upload-Size':String(50*1024*1024+1)})).status===413,'Video superior a 50 MiB se rechaza');
+ok((await request(`/creator/uploads/${da.id}/video`,a,Buffer.from('x'),{'X-Upload-Size':String(100_000_001)})).status===413,'Video superior a 100 MB se rechaza');
 ok((await request(`/creator/uploads/${da.id}/image`,a,Buffer.from('imagen falsa'))).status===400,'Se rechaza imagen falsa');
 ok((await request(`/creator/uploads/${da.id}/video`,a,Buffer.from('video falso'))).status===400,'Se rechaza video falso después del streaming');
 ok((await request(`/creator/uploads/${da.id}/publish`,a,Buffer.from('referencia falsa'))).status===400,'No se publica sin archivos válidos');

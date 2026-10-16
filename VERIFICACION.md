@@ -106,3 +106,11 @@ La primera versión está verificada de extremo a extremo **en el entorno local 
 Se eliminó el bloqueo por diferencia de proporción entre imagen y video. La referencia sigue obligada a coincidir con la imagen original. La vista previa y la textura del escáner recortan el video desde el centro para llenar la imagen, sin deformación ni transcodificación.
 
 Verificado: 17 pruebas unitarias, TypeScript de cliente y servidor, compilación Vite, y publicación real en una base local aislada con imagen 640×800 y video 640×820. La cámara sintética reconoció la pieza, reprodujo el video y detuvo las pistas al cerrar. Evidencias locales: `output/video-frame/result.json`, `preview.png` y `scanner.png`. No se subieron obras de prueba a producción.
+
+## Tipografía responsive y video de 100 MB — 16 de octubre de 2026
+
+Crea tu obra pierde el punto final e incorpora debajo la indicación de proporción. Portada y formulario aumentan sus titulares y subtítulos en móvil; en escritorio los titulares son menores y los subtítulos mayores. Revisadas visualmente las capturas y comprobados 12 diseños (portada y formulario a 320, 390, 430, 768, 1366 y 1920 px), sin desbordamiento.
+
+Se elimina el máximo de duración y se aceptan videos de hasta 100 000 000 bytes en la carga principal por streaming. Se comprueban duraciones positivas finitas, sin un tope temporal. Verificados un MP4 real de 30 segundos y 100 MB exactos, imagen de 12 MiB, publicación y reconocimiento con cámara sintética. Se añade un reintento idempotente del paso final ante errores temporales de red o servidor (sin repetir las cargas ni reintentar errores 4xx).
+
+Validación: 18 pruebas unitarias; tipos de cliente y servidor; compilación; 23 comprobaciones de la API (incluido rechazo de 100 MB + 1 byte y publicaciones simultáneas). Evidencias locales: `output/responsive/results.json`, `output/autopublish-tests.json`, `output/publication-api-tests.json`. Todas las cargas de esta verificación se hicieron en `.wrangler/video-100-regression`, separadas de producción.

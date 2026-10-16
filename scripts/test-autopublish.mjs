@@ -13,16 +13,16 @@ try{
  assert.equal(await page.locator('input[type=password],input[type=text]').count(),0);
  await page.screenshot({path:'output/publicar-formulario.png',fullPage:true});
  await page.getByLabel('Sube tu imagen inicial',{exact:true}).setInputFiles('output/autopublish/image-12mb.png');
- await page.getByLabel('Sube tu video',{exact:true}).setInputFiles('output/autopublish/video-50mb.mp4');
+ await page.getByLabel('Sube tu video',{exact:true}).setInputFiles('output/autopublish/video-100mb.mp4');
  assert.equal(await page.locator('.file-ready:visible').count(),2);await page.screenshot({path:'output/publicar-archivos-listos.png',fullPage:true});
  await page.getByRole('button',{name:'Publicar',exact:true}).click();
  await page.getByRole('heading',{name:'Pieza publicada con éxito.'}).waitFor({timeout:240000});
  await page.screenshot({path:'output/pieza-publicada.png',fullPage:true});
  const state=await(await page.request.post(base+'/api/creator/session',{headers:{Origin:base},data:{}})).json();
- assert.equal(state.published,true);const id=state.submission.id;
+ assert.equal(state.published,true);assert.ok(state.submission.duration>29,'Admite video real de 30 segundos');const id=state.submission.id;
  const gallery=await(await page.request.get(base+'/api/gallery')).json();
  assert.ok(gallery.works.some(w=>w.id===id));for(const old of before.works)assert.ok(gallery.works.some(w=>w.id===old.id),'Conserva las piezas públicas anteriores');
- console.log('PUBLICADA: imagen de 12 MiB y video de 50 MiB, sin aprobación manual.');
+ console.log('PUBLICADA: imagen de 12 MiB y video de 100 MB, sin aprobación manual.');
  await writeFile('output/autopublish/current.json',JSON.stringify({id,slot:state.slot,publication:gallery.id},null,2));
  await page.getByRole('button',{name:'Ver mi pieza con realidad aumentada'}).click();
  const scanner=page.frameLocator('.scanner-overlay iframe');await scanner.getByRole('button',{name:'Entendido',exact:true}).click();
@@ -30,11 +30,11 @@ try{
  await frame.waitForFunction(id=>document.body.dataset.activeWork===id&&[...document.querySelectorAll('video')].some(v=>v.getAttribute('src')===`/api/media/${id}/video`&&!v.paused&&v.currentTime>.1),id,{timeout:120000});
  await page.screenshot({path:'output/pieza-publicada-ar.png'});
  assert.equal(await scanner.locator('#onboarding').count(),0);
- console.log('RECONOCIDA: la nueva pieza activa su propio video de 50 MiB desde el botón de éxito.');
+ console.log('RECONOCIDA: la nueva pieza activa su propio video de 100 MB desde el botón de éxito.');
  await frame.evaluate(()=>{parent.__publishedTracks=document.querySelector('#scene video').srcObject.getTracks()});
  await page.getByRole('button',{name:'Cerrar cámara'}).click();await page.waitForFunction(()=>window.__publishedTracks.every(t=>t.readyState==='ended'));
  await page.reload();await page.getByRole('heading',{name:'Pieza publicada con éxito.'}).waitFor();
  assert.equal(errors.length,0,errors.join('\n'));
- await writeFile('output/autopublish-tests.json',JSON.stringify({passed:true,date:new Date().toISOString(),imageBytes:12*1024*1024,videoBytes:50*1024*1024,id,slot:state.slot,published:gallery.id,recognizedWithSyntheticCamera:true,previousWorksPreserved:true,cameraStopped:true},null,2));
+ await writeFile('output/autopublish-tests.json',JSON.stringify({passed:true,date:new Date().toISOString(),imageBytes:12*1024*1024,videoBytes:100_000_000,id,slot:state.slot,published:gallery.id,recognizedWithSyntheticCamera:true,previousWorksPreserved:true,cameraStopped:true},null,2));
  console.log('Flujo completo de publicación y reconocimiento aprobado.');
 }finally{await browser.close()}

@@ -19,7 +19,7 @@ function textField(v:unknown,max:number){ensure(typeof v==='string'&&v.trim().le
 export async function handle(req:Request,env:Env):Promise<Response>{
  try {
  const url=new URL(req.url),path=url.pathname.replace(/^\/api/,'');
- if(req.method!=='GET'&&req.method!=='HEAD') {ensure(req.headers.get('Origin')===url.origin,'Origen de solicitud no permitido.',403);ensure(Number(req.headers.get('Content-Length')||0)<=64*1024*1024,'La carga supera 64 MB.',413);}
+ if(req.method!=='GET'&&req.method!=='HEAD') {ensure(req.headers.get('Origin')===url.origin,'Origen de solicitud no permitido.',403);const bodyLimit=/^\/creator\/uploads\/[a-f0-9-]{36}\/video$/.test(path)?100_000_000:64*1024*1024;ensure(Number(req.headers.get('Content-Length')||0)<=bodyLimit,'La carga supera el tamaño permitido.',413);}
  if(path==='/gallery'&&req.method==='GET')return json(await publicManifest(env));
  let who=await session(req,env);
  const creator=path.startsWith('/creator/')||path.startsWith('/media/')?await session(req,env,'umbral_creator'):null;

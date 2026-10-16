@@ -14,7 +14,7 @@ async function readLimited(req:Request,limit:number){
   const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}return bytes;
 }
 
-// Read only MP4 headers and its small metadata box. The 50 MB video itself
+// Read only MP4 headers and its small metadata box. The 100 MB video itself
 // streams directly to R2 and is never buffered in the Worker.
 async function storedVideoInfo(env:Env,key:string,size:number){
   const read=async(offset:number,length:number)=>{const object=await env.MEDIA.get(key,{range:{offset,length}});ensure(object,'Video incompleto.');return Buffer.from(await object.arrayBuffer());};
@@ -53,9 +53,9 @@ export async function creatorPublication(req:Request,env:Env,ownerHash:string):P
   if(kind==='image'||kind==='video'){
     ensure(!ticket.published&&!await env.DB.prepare('SELECT id FROM submissions WHERE id=?').bind(id).first(),'Esta versión ya está preparada para publicar.',409);
     const assetKey=`private/${id}/${kind}-${crypto.randomUUID()}`;
-    const limit=(kind==='image'?12:50)*1024*1024;
+    const limit=kind==='image'?12*1024*1024:100_000_000;
     const size=Number(req.headers.get('X-Upload-Size')||req.headers.get('Content-Length'));
-    ensure(Number.isSafeInteger(size)&&size>0&&size<=limit,`Máximo ${kind==='image'?'12 MB para la imagen':'50 MB para el video'}.`,413);
+    ensure(Number.isSafeInteger(size)&&size>0&&size<=limit,`Máximo ${kind==='image'?'12 MB para la imagen':'100 MB para el video'}.`,413);
     if(kind==='image'){
       const bytes=await readLimited(req,limit);ensure(bytes.length===size,'Tamaño de imagen inválido.');
       const meta=imageInfo(bytes);await env.MEDIA.put(assetKey,bytes,{httpMetadata:{contentType:meta.mime}});

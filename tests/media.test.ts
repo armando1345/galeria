@@ -11,6 +11,7 @@ test('Los archivos de demostración cumplen los límites de imagen y video',()=>
 test('Rechaza imagen corrupta y archivo disfrazado de PNG',()=>{assert.throws(()=>imageInfo(Buffer.from('<svg onload="alert(1)">')));const bad=Buffer.from(image);bad[bad.length-30]^=255;assert.throws(()=>imageInfo(bad));});
 test('Rechaza dimensiones exageradas antes de descomprimir',()=>{const bad=Buffer.from(image);bad.writeUInt32BE(65000,16);assert.throws(()=>imageInfo(bad),/4096/);});
 test('Rechaza MP4 truncado y texto con extensión MP4',()=>{assert.throws(()=>videoInfo(video.subarray(0,100)));assert.throws(()=>videoInfo(Buffer.from('esto no es video')));});
-test('Rechaza videos superiores a 15 s con validación de metadatos',()=>{const bad=Buffer.from(video);const i=bad.indexOf(Buffer.from('mvhd'));assert.ok(i>0);bad.writeUInt32BE(20000,i+20);assert.throws(()=>videoInfo(bad),/15 segundos/);});
+test('Admite duraciones superiores a 15 segundos sin un máximo artificial',()=>{const long=Buffer.from(video);const i=long.indexOf(Buffer.from('mvhd'));assert.ok(i>0);long.writeUInt32BE(3600*long.readUInt32BE(i+16),i+20);assert.equal(videoInfo(long).duration,3600);});
+test('Rechaza metadatos de duración nula',()=>{const bad=Buffer.from(video);const i=bad.indexOf(Buffer.from('mvhd'));bad.writeUInt32BE(0,i+20);assert.throws(()=>videoInfo(bad),/duración válida/);});
 test('Rechaza códec no H.264',()=>{const bad=Buffer.from(video);const i=bad.indexOf(Buffer.from('avc1'),40);assert.ok(i>0);bad.write('hvc1',i);assert.throws(()=>videoInfo(bad),/H.264/);});
 

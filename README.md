@@ -62,7 +62,7 @@ Se admite un máximo de 12 intentos de publicación por navegador al día. Las r
 | Archivo | Reglas del servidor |
 | --- | --- |
 | Ilustración | PNG estándar de 8 bits o JPG; máximo 12 MiB; entre 320 y 4096 px por lado; máximo 8 megapíxeles |
-| Animación | MP4 con una pista de video H.264 `avc1`; máximo 50 MiB; hasta 15 s, con 0,05 s de tolerancia de redondeo; entre 320 y 1920 px por lado; sin matriz de rotación |
+| Animación | MP4 con una pista de video H.264 `avc1`; máximo 100 MB (100 000 000 bytes) en Crea tu obra; sin límite de duración; entre 320 y 1920 px por lado; sin matriz de rotación |
 | Proporción | Imagen y video coinciden con tolerancia relativa inferior a 1 % |
 
 El servidor inspecciona firmas, estructura, dimensiones y CRC de PNG; segmentos y cierre de JPEG; cajas, códec, duración y dimensiones de MP4. No confía en extensiones, MIME ni dimensiones enviados por el formulario. No transcodifica ni decodifica todos los fotogramas. Los navegadores decodifican las imágenes en las vistas previas y al compilar. Un MP4 con metadatos manipulados no equivale a una certificación del flujo H.264 completo. Exporta material normal y comprueba su reproducción en la vista previa. Los MP4 admiten hasta 30 cajas principales y 2 MiB de metadatos `moov`; una exportación H.264 normal queda ampliamente por debajo.
@@ -181,7 +181,7 @@ node scripts/test-flow.mjs    # requiere servidor local; usa espacios 21 y 22
 node scripts/test-ui.mjs      # selección con checks, cámara mínima y cambio frontal/trasera; no publica
 node scripts/test-creator.mjs # privacidad y asignación concurrente sin códigos; solo local
 pnpm test:errors              # recuperación: red, imagen inválida, cámara denegada y galería vacía
-pnpm test:publish             # publicación real de imagen 12 MiB y video 50 MiB + reconocimiento sintético
+pnpm test:publish             # publicación real de imagen 12 MiB y video 100 MB y 30 s + reconocimiento sintético
 pnpm test:publish-api         # después del anterior: límites, privacidad, concurrencia e idempotencia
 node scripts/generate-camera.mjs
 node scripts/test-camera.mjs  # Chromium + cámara sintética; no usa cámara física
@@ -210,3 +210,5 @@ private/             Accesos locales: nunca publicar
 ```
 
 MindAR se incluye bajo MIT; licencia en `public/vendor/MINDAR-LICENSE.txt`. Se modificaron únicamente sus imports de Three.js para resolverlos con archivos locales y evitar un importmap inline. Three.js y las demás dependencias conservan sus licencias. FFmpeg solo se usa para generar materiales de prueba; no se incluye en la aplicación web desplegada.
+
+El flujo principal transmite el video de hasta 100 MB directamente a R2 en una solicitud separada de la imagen. El antiguo portal de revisión por código conserva su límite de 50 MiB para cargas multipart; no tiene límite de duración.

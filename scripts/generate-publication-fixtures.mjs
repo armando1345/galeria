@@ -7,6 +7,7 @@ const crc=b=>{let c=0xffffffff;for(const byte of b)c=crcTable[(c^byte)&255]^(c>>
 const png=await readFile('tests/fixtures/publication.png'),text=Buffer.alloc(12*1024*1024-png.length-12,120);text.write('Nota\0',0,'ascii');
 const chunk=Buffer.alloc(text.length+12);chunk.writeUInt32BE(text.length,0);chunk.write('tEXt',4);text.copy(chunk,8);chunk.writeUInt32BE(crc(chunk.subarray(4,-4)),chunk.length-4);
 await writeFile('output/autopublish/image-12mb.png',Buffer.concat([png.subarray(0,-12),chunk,png.subarray(-12)]));
-const video=await readFile('tests/fixtures/publication.mp4'),padding=Buffer.alloc(50*1024*1024-video.length);padding.writeUInt32BE(padding.length,0);padding.write('free',4);await writeFile('output/autopublish/video-50mb.mp4',Buffer.concat([video,padding]));
+execFileSync(ffmpeg,['-y','-stream_loop','4','-i','tests/fixtures/publication.mp4','-t','30','-c','copy','output/autopublish/long.mp4'],{stdio:'pipe'});
+const video=await readFile('output/autopublish/long.mp4'),padding=Buffer.alloc(100_000_000-video.length);padding.writeUInt32BE(padding.length,0);padding.write('free',4);await writeFile('output/autopublish/video-100mb.mp4',Buffer.concat([video,padding]));
 execFileSync(ffmpeg,['-y','-loop','1','-i','tests/fixtures/publication.png','-vf','scale=384:480,pad=512:640:64:80:color=0xeeeeee,format=yuv420p','-t','9','-r','10','output/autopublish/camera.y4m'],{stdio:'pipe'});
-console.log('Fixtures: PNG exacto de 12 MiB, MP4 exacto de 50 MiB y cámara sintética.');
+console.log('Fixtures: PNG exacto de 12 MiB, MP4 de 30 segundos y 100 MB exactos y cámara sintética.');
